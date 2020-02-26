@@ -8,12 +8,10 @@
 #include <string>
 #include <cmath>
 #include <ctime>
+#include "Protocol.h"
 #define PORT 8080
 
 using namespace std;
-
-string createSynAckPacket(int seq, int& ack, int bufferSize, int maxMessageSize, string& buff);
-string createRstPacket(int seq, int ack);
 
 int main(int argc, char const *argv[]) {
   if(argc > 1) {
@@ -83,23 +81,15 @@ int main(int argc, char const *argv[]) {
   int sequenceNumber = rand() % 1000000; cout << "Server sequence number: " << sequenceNumber << endl;
   int acknowledgeNumber = 0;
   int maxBuffer = 5;
-  int bufferVal = static_cast<int>(pow(2,maxBuffer));
   int maxMessage = 10;
-  int maxMessageVal = static_cast<int>(pow(2,maxMessage));
   if(argc > 1) {
     maxBuffer = atoi(argv[1]);
     maxMessage = atoi(argv[2]);
   }
-  valread = read(new_socket, buffer, 14);
+  valread = read(new_socket, buffer, 13);
   cout << "Received: " << buffer << endl;
-  if(buffer[13] != '\0') {
-    string sendStr = createRstPacket(sequenceNumber, acknowledgeNumber);
-    send(new_socket, sendStr.data(), sendStr.size(), 0);
-    cout << "Sent: " << sendStr << endl;
-    return -1;
-  }
-  string bufferStr;
-  bufferStr = buffer;
+  string bufferStr(buffer, 13);
+  acknowledgeNumber = addSeqAckNumber(atoi(bufferStr.substr(3,6).data()), 1);
   if(atoi(bufferStr.substr(9,2).data()) != maxBuffer) {
     maxBuffer = min(maxBuffer, atoi(bufferStr.substr(9,2).data()));
   }
@@ -107,50 +97,23 @@ int main(int argc, char const *argv[]) {
     maxMessage = min(maxMessage, atoi(bufferStr.substr(11,2).data()));
   }
   string sendStr = createSynAckPacket(sequenceNumber, acknowledgeNumber, maxBuffer, maxMessage, bufferStr);
+  int bufferVal = static_cast<int>(pow(2,maxBuffer));
+  int maxMessageVal = static_cast<int>(pow(2,maxMessage));
   delete [] buffer;
   char* newBuffer = new char[bufferVal];
   buffer = newBuffer;
-  send(new_socket, sendStr.data(), sendStr.size(), 0);
+  send(new_socket, sendStr.data(), 19, 0);
   cout << "Sent: " << sendStr << endl;
-  valread = read(new_socket, buffer, 16);
+  valread = read(new_socket, buffer, 15);
   cout << "Received: "<< buffer << endl;
-  if(buffer[15] != '\0') {
-    string sendStr = createRstPacket(sequenceNumber, acknowledgeNumber);
-    send(new_socket, sendStr.data(), sendStr.size(), 0);
-    cout << "Sent: " << sendStr << endl;
-    return -1;
-  }
-  bufferStr = buffer;
-  if(atoi(bufferStr.substr(9,6).data()) != ++sequenceNumber) {
-    acknowledgeNumber = atoi(bufferStr.substr(3,6).data()) + 1;
+  bufferStr = bufferToString(buffer, 15);
+  sequenceNumber = addSeqAckNumber(sequenceNumber, 1);
+  if(atoi(bufferStr.substr(9,6).data()) != sequenceNumber) {
+    acknowledgeNumber = addSeqAckNumber(atoi(bufferStr.substr(3,6).data()), 1);
     sendStr = createRstPacket(sequenceNumber, acknowledgeNumber);
     send(new_socket, sendStr.data(), sendStr.size(), 0);
     cout << "Sent: " << sendStr << endl;
     return -1;
   }
   return 0;
-}
-
-string createSynAckPacket(int seq, int& ack, int bufferSize, int maxMessageSize, string& buff) {
-  string sequence = to_string(seq);
-  string acknowledge = buff.substr(3,6);
-  string bufferSizeStr = to_string(bufferSize);
-  string messageSizeStr = to_string(maxMessageSize);
-  ack = atoi(acknowledge.data()) + 1;
-  if(ack > 999999)
-    ack = 0;
-  acknowledge = to_string(ack);
-  sequence.insert(sequence.begin(), 6-sequence.size(), '0');
-  acknowledge.insert(acknowledge.begin(), 6-acknowledge.size(), '0');
-  bufferSizeStr.insert(bufferSizeStr.begin(), 2-bufferSizeStr.size(), '0');
-  messageSizeStr.insert(messageSizeStr.begin(), 2-messageSizeStr.size(), '0');
-  return "SAK" + sequence + acknowledge + bufferSizeStr + messageSizeStr;
-}
-
-string createRstPacket(int seq, int ack) {
-  string sequence = to_string(seq);
-  string acknowledge = to_string(ack);
-  sequence.insert(sequence.begin(), 6-sequence.size(), '0');
-  acknowledge.insert(acknowledge.begin(), 6-acknowledge.size(), '0');
-  return "RST" + sequence + acknowledge;
 }

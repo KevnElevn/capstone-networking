@@ -5,14 +5,10 @@
 #include <string>
 #include <cstdlib>
 #include <cmath>
+#include "Protocol.h"
 #define PORT 8080
 
 using namespace std;
-
-string createSynPacket(int seq, int bufferSize, int maxMessageSize);
-//bufferSize and maxMessageSize is exponent to raise 2 by.
-string createAckPacket(int seq, int ack);
-string createRstPacket(int seq, int ack);
 
 int main(int argc, char const *argv[]) {
   if(argc > 1) {
@@ -59,28 +55,20 @@ int main(int argc, char const *argv[]) {
   int sequenceNumber = rand() % 1000000;
   int acknowledgeNumber = 0;
   int maxBuffer = 5;
-  int bufferVal = static_cast<int>(pow(2,maxBuffer));
   int maxMessage = 10;
-  int maxMessageVal = static_cast<int>(pow(2,maxMessage));
   if(argc > 1) {
     maxBuffer = atoi(argv[1]);
     maxMessage = atoi(argv[2]);
   }
   string sendStr = createSynPacket(sequenceNumber, maxBuffer, maxMessage);
-  send(sock, sendStr.data(), sendStr.size(), 0);
+  send(sock, sendStr.data(), 13, 0);
   cout << "Sent: " << sendStr << endl;
-  valread = read(sock, buffer, 20);
+  valread = read(sock, buffer, 19);
   cout << "Received: " << buffer << endl;
-  if(buffer[19] != '\0') {
-    string sendStr = createRstPacket(sequenceNumber, acknowledgeNumber);
-    send(sock, sendStr.data(), sendStr.size(), 0);
-    cout << "Sent: " << sendStr << endl;
-    return -1;
-  }
-  string bufferStr;
-  bufferStr = buffer;
-  acknowledgeNumber = atoi(bufferStr.substr(3,6).data()) + 1;
-  if(atoi(bufferStr.substr(9,6).data()) == ++sequenceNumber) {
+  string bufferStr(buffer, 19);
+  acknowledgeNumber = addSeqAckNumber(atoi(bufferStr.substr(3,6).data()), 1);
+  sequenceNumber = addSeqAckNumber(sequenceNumber, 1);
+  if(atoi(bufferStr.substr(9,6).data()) == sequenceNumber) {
     if(atoi(bufferStr.substr(15,2).data()) != maxBuffer) {
       maxBuffer = min(maxBuffer, atoi(bufferStr.substr(15,2).data()));
     }
@@ -92,12 +80,12 @@ int main(int argc, char const *argv[]) {
   else {
     sendStr = createRstPacket(sequenceNumber, acknowledgeNumber);
   }
-  if(sequenceNumber == 1000000)
-    sequenceNumber = 0;
+  int bufferVal = static_cast<int>(pow(2,maxBuffer));
+  int maxMessageVal = static_cast<int>(pow(2,maxMessage));
   delete [] buffer;
   char* newBuffer = new char[bufferVal];
   buffer = newBuffer;
-  send(sock, sendStr.data(), sendStr.size(), 0);
+  send(sock, sendStr.data(), 15, 0);
   cout << "Sent: " << sendStr << endl;
   //End connection if RST
   if(sendStr[0] == 'R')
@@ -105,30 +93,4 @@ int main(int argc, char const *argv[]) {
   valread = read(sock, buffer, bufferVal);
 
   return 0;
-}
-
-string createSynPacket(int seq, int maxBufferSize, int maxMessageSize) {
-  string sequence = to_string(seq);
-  string bufferSizeStr = to_string(maxBufferSize);
-  string messageSizeStr = to_string(maxMessageSize);
-  sequence.insert(sequence.begin(), 6-sequence.size(), '0');
-  bufferSizeStr.insert(bufferSizeStr.begin(), 2-bufferSizeStr.size(), '0');
-  messageSizeStr.insert(messageSizeStr.begin(), 2-messageSizeStr.size(), '0');
-  return "SYN" + sequence + bufferSizeStr + messageSizeStr;
-}
-
-string createAckPacket(int seq, int ack) {
-  string sequence = to_string(seq);
-  string acknowledge = to_string(ack);
-  sequence.insert(sequence.begin(), 6-sequence.size(), '0');
-  acknowledge.insert(acknowledge.begin(), 6-acknowledge.size(), '0');
-  return "ACK" + sequence + acknowledge;
-}
-
-string createRstPacket(int seq, int ack) {
-  string sequence = to_string(seq);
-  string acknowledge = to_string(ack);
-  sequence.insert(sequence.begin(), 6-sequence.size(), '0');
-  acknowledge.insert(acknowledge.begin(), 6-acknowledge.size(), '0');
-  return "RST" + sequence + acknowledge;
 }
