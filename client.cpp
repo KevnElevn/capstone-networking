@@ -12,6 +12,11 @@ using namespace std;
 
 int main(int argc, char const *argv[]) {
   if(argc > 1) {
+    if(atoi(argv[1]) < 5) {
+      //Buffer size < 32B
+      cerr << "Buffer too small" << endl;
+      return 1;
+    }
     if(atoi(argv[1]) > 25) {
       //Buffer size > ~33MB
       cerr << "Buffer too big" << endl;
@@ -60,37 +65,40 @@ int main(int argc, char const *argv[]) {
     maxBuffer = atoi(argv[1]);
     maxMessage = atoi(argv[2]);
   }
+  //Send SYN packet
   string sendStr = createSynPacket(sequenceNumber, maxBuffer, maxMessage);
-  send(sock, sendStr.data(), 13, 0);
-  cout << "Sent: " << sendStr << endl;
-  valread = read(sock, buffer, 19);
-  cout << "Received: " << buffer << endl;
-  string bufferStr(buffer, 19);
-  acknowledgeNumber = addSeqAckNumber(atoi(bufferStr.substr(3,6).data()), 1);
-  sequenceNumber = addSeqAckNumber(sequenceNumber, 1);
-  if(atoi(bufferStr.substr(9,6).data()) == sequenceNumber) {
-    if(atoi(bufferStr.substr(15,2).data()) != maxBuffer) {
-      maxBuffer = min(maxBuffer, atoi(bufferStr.substr(15,2).data()));
-    }
-    if(atoi(bufferStr.substr(17,2).data()) != maxMessage) {
-      maxMessage = min(maxMessage, atoi(bufferStr.substr(17,2).data()));
-    }
-    sendStr = createAckPacket(sequenceNumber, acknowledgeNumber);
-  }
-  else {
-    sendStr = createRstPacket(sequenceNumber, acknowledgeNumber);
+  send(sock, sendStr.data(), PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH, 0);
+  cout << "Sent: " << endl;
+  printPacket(sendStr);
+  //Read SYNACK packet
+  valread = read(sock, buffer, PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH); //Read SYNACK packet
+  string bufferStr(buffer, PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH);
+  cout << "Received: " << endl;
+  printPacket(bufferStr);
+  //Check and process SYNACK packet
+  if(!receiveSynAckPacket(sequenceNumber, acknowledgeNumber, maxBuffer, maxMessage, bufferStr)) {
+    sendRstPacket(sock, sendStr, sequenceNumber, acknowledgeNumber);
+    return -1;
   }
   int bufferVal = static_cast<int>(pow(2,maxBuffer));
   int maxMessageVal = static_cast<int>(pow(2,maxMessage));
   delete [] buffer;
   char* newBuffer = new char[bufferVal];
   buffer = newBuffer;
-  send(sock, sendStr.data(), 15, 0);
-  cout << "Sent: " << sendStr << endl;
-  //End connection if RST
-  if(sendStr[0] == 'R')
-    return -1;
-  valread = read(sock, buffer, bufferVal);
+  sendStr = createCtrlPacket(ACK, sequenceNumber, acknowledgeNumber);
+  send(sock, sendStr.data(), PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH), 0);
+  cout << "Sent: " << endl;
+  printPacket(sendStr);
+  //Handshake complete
+  string fullMessage;
+  while(valread = read(sock, buffer, bufferVal)) {
+    bufferStr = bufferToString(buffer, bufferVal);
+    cout << "Received: " << endl;
+    printPacket(bufferStr);
+    if(!receiveDatPacket(bufferStr, fullMessage)) {
+      cout << "Current message: " << fullMessage << endl;
+    }
+  }
 
   return 0;
 }

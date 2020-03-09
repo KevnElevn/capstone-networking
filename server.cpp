@@ -15,6 +15,11 @@ using namespace std;
 
 int main(int argc, char const *argv[]) {
   if(argc > 1) {
+    if(atoi(argv[1]) < 5) {
+      //Buffer size < 32B
+      cerr << "Buffer too small" << endl;
+      return 1;
+    }
     if(atoi(argv[1]) > 26) {
       //Buffer size > ~66MB
       cerr << "Buffer too big" << endl;
@@ -86,34 +91,54 @@ int main(int argc, char const *argv[]) {
     maxBuffer = atoi(argv[1]);
     maxMessage = atoi(argv[2]);
   }
-  valread = read(new_socket, buffer, 13);
-  cout << "Received: " << buffer << endl;
-  string bufferStr(buffer, 13);
-  acknowledgeNumber = addSeqAckNumber(atoi(bufferStr.substr(3,6).data()), 1);
-  if(atoi(bufferStr.substr(9,2).data()) != maxBuffer) {
-    maxBuffer = min(maxBuffer, atoi(bufferStr.substr(9,2).data()));
+  //Read SYN packet
+  valread = read(new_socket, buffer, PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH);
+  string bufferStr(buffer, PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH);
+  cout << "Received: " << endl;
+  printPacket(bufferStr);
+  //Check and process SYN packet
+  string sendStr;
+  if(!receiveSynPacket(sequenceNumber, acknowledgeNumber, maxBuffer, maxMessage, bufferStr)) {
+    sendRstPacket(new_socket, sendStr, sequenceNumber, acknowledgeNumber);
+    return -1;
   }
-  if(atoi(bufferStr.substr(11,2).data()) != maxMessage) {
-    maxMessage = min(maxMessage, atoi(bufferStr.substr(11,2).data()));
-  }
-  string sendStr = createSynAckPacket(sequenceNumber, acknowledgeNumber, maxBuffer, maxMessage, bufferStr);
   int bufferVal = static_cast<int>(pow(2,maxBuffer));
   int maxMessageVal = static_cast<int>(pow(2,maxMessage));
   delete [] buffer;
   char* newBuffer = new char[bufferVal];
   buffer = newBuffer;
-  send(new_socket, sendStr.data(), 19, 0);
-  cout << "Sent: " << sendStr << endl;
-  valread = read(new_socket, buffer, 15);
-  cout << "Received: "<< buffer << endl;
-  bufferStr = bufferToString(buffer, 15);
-  sequenceNumber = addSeqAckNumber(sequenceNumber, 1);
-  if(atoi(bufferStr.substr(9,6).data()) != sequenceNumber) {
-    acknowledgeNumber = addSeqAckNumber(atoi(bufferStr.substr(3,6).data()), 1);
-    sendStr = createRstPacket(sequenceNumber, acknowledgeNumber);
-    send(new_socket, sendStr.data(), sendStr.size(), 0);
-    cout << "Sent: " << sendStr << endl;
+  //Send SYNACK packet
+  sendStr = createSynAckPacket(sequenceNumber, acknowledgeNumber, maxBuffer, maxMessage);
+  send(new_socket, sendStr.data(), PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH, 0);
+  cout << "Sent: " << endl;
+  printPacket(sendStr);
+  //Reah ACK packet
+  valread = read(new_socket, buffer, PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH));
+  bufferStr = bufferToString(buffer, PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH));
+  cout << "Received: " << endl;
+  printPacket(bufferStr);
+  //Check ACK packet
+  if(!receiveAckPacket(sequenceNumber, acknowledgeNumber, bufferStr)) {
+    sendRstPacket(new_socket, sendStr, sequenceNumber, acknowledgeNumber);
     return -1;
   }
+  //Handshake complete
+  string theMessage = "This message is 64 bytes long. THIS MESSAGE IS 64 BYTES LONG.";
+  int packetMessageLength = bufferVal - DATA_HEADER_LENGTH;
+  int messageStartIndex = 0;
+  string packetMessage;
+  while(messageStartIndex < theMessage.size()) {
+    if(theMessage.size()-messageStartIndex < packetMessageLength) {
+      packetMessageLength = theMessage.size() - messageStartIndex;
+    }
+    packetMessage = theMessage.substr(messageStartIndex, packetMessageLength);
+    sendStr = createDatPacket(sequenceNumber, acknowledgeNumber, packetMessageLength, packetMessage);
+    messageStartIndex += packetMessageLength;
+    sequenceNumber = addSeqAckNumber(sequenceNumber, sendStr.size());
+    send(new_socket, sendStr.data(), bufferVal, 0);
+    cout << "Sent: " << endl;
+    printPacket(sendStr);
+  }
+
   return 0;
 }

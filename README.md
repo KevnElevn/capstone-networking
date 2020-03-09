@@ -24,7 +24,11 @@ Buffer Overflow:
 3. If the acknowledge number, sequence number, checksum, or other verification data isn't correctly formatted to Protocol
   -Send RST packet to end connection
 
-SYN Flood:
+Unresponsive client or server:
 1. Client sends SYN packet to server
 2. Server responds with a SYNACK packet
 3. Client does not reply with an ACK packet
+
+How does a receiver of a packet check the expected sequence number?
+What does it do when it receives an unexpected sequence number?
+How will the sender know which packets to resend?
