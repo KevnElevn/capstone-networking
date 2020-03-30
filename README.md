@@ -22,13 +22,19 @@ Buffer Overflow:
 1. Server or client tries to send a packet that's bigger than the agreed upon buffer size
 2. Server or client's packet is truncated to agreed buffer size; entire packet is not sent
 3. If the acknowledge number, sequence number, checksum, or other verification data isn't correctly formatted to Protocol
-  -Send RST packet to end connection
+  -Send RST packet and connection
 
 Unresponsive client or server:
 1. Client sends SYN packet to server
 2. Server responds with a SYNACK packet
-3. Client does not reply with an ACK packet
 
 How does a receiver of a packet check the expected sequence number?
+-When a packet is received, the size of the packet (or 1 if it's an initial handshake packet)
+ is added to the receiver's acknowledge number. This is checked against the packet sender's sequence number.
 What does it do when it receives an unexpected sequence number?
+-The receiver will send a RST packet and end the connection.
 How will the sender know which packets to resend?
+-
+
+To do next:
+-Error table
