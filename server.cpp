@@ -31,11 +31,14 @@ int main(int argc, char const *argv[])
       cerr << "Buffer too big" << endl;
       return 1;
     }
-    if(atoi(argv[2]) > 31)
+    if(argc > 2)
     {
-      //Max message size > 2GB
-      cerr << "Max message size too big" << endl;
-      return 2;
+      if(atoi(argv[2]) > 31)
+      {
+        //Max message size > 2GB
+        cerr << "Max message size too big" << endl;
+        return 2;
+      }
     }
   }
 
@@ -65,14 +68,14 @@ int main(int argc, char const *argv[])
       exit(EXIT_FAILURE);
   }
   //Set recv timeout for socket
-  struct timeval tv;
-  tv.tv_sec = 5; //5 second timeout
-  tv.tv_usec = 0;
-  if(setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)& tv, sizeof tv))
-  {
-    perror("setsockopt");
-    exit(EXIT_FAILURE);
-  }
+  // struct timeval tv;
+  // tv.tv_sec = 5; //5 second timeout
+  // tv.tv_usec = 0;
+  // if(setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)& tv, sizeof tv))
+  // {
+  //   perror("setsockopt");
+  //   exit(EXIT_FAILURE);
+  // }
 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
@@ -101,11 +104,12 @@ int main(int argc, char const *argv[])
   int sequenceNumber = rand() % 1000000; cout << "Server sequence number: " << sequenceNumber << endl;
   int acknowledgeNumber = 0;
   int maxBuffer = 10;
-  int maxMessage = 10;
+  int maxMessage = 30;
   if(argc > 1)
   {
     maxBuffer = atoi(argv[1]);
-    maxMessage = atoi(argv[2]);
+    if(argc > 2)
+      maxMessage = atoi(argv[2]);
   }
   //Read SYN packet
   Packet packet;
@@ -192,7 +196,7 @@ int main(int argc, char const *argv[])
           sendPacket(new_socket, packet);
           goto bad_end;
         }
-        string filename = packet.getData();
+        string filename = packet.getData(); cout << filename << endl;
         ifstream readFile("input/"+filename, ios::in | ios::ate | ios::binary);
         if(!readFile.is_open())
         {
@@ -245,7 +249,7 @@ int main(int argc, char const *argv[])
           goto bad_end;
         }
         //REQ handshake complete
-        int chunkSize = bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH);
+        int chunkSize = bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+DATA_LENGTH_LENGTH);
         int chunkTotal = fileSize / chunkSize;
         if(fileSize % chunkSize)
           chunkTotal++;

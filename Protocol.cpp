@@ -23,11 +23,18 @@ void sendPacket(int socket, Packet& packet)
 
 char recvPacket(int socket, char* buffer, int bufferSize, Packet& packet)
 {
-  int valread = recv(socket, buffer, bufferSize, 0);
+  int valread = recv(socket, buffer, PACKET_TYPE_LENGTH, 0);
   if(valread > 0)
   {
-    std::cout << "Receive buffer: " << buffer << std::endl;
+    packet.setType(buffer[0]); //Also sets size
+    valread = recv(socket, buffer, packet.getSize(), 0);
     packet.setPacket(buffer);
+    if(packet.getType() == DAT || packet.getType() == REQ || packet.getType() == RAK)
+    {
+      valread = recv(socket, buffer, packet.getField2(), 0);
+      packet.setData(buffer);
+    }
+    std::cout << "Received: \n";
     packet.printPacket();
     std::cout << "----------------------------------\n";
     return packet.getType();

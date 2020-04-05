@@ -20,6 +20,8 @@ public:
 
   void setPacket(char packetType, int seq, int ack, int f1 = 0, int f2 = 0, std::string dat = "");
   void setPacket(char* buffer);
+  void setType(char t);
+  void setData(char* buffer);
   void printPacket();
   std::string toString() const;
 

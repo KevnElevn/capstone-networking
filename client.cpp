@@ -14,27 +14,34 @@ using namespace std;
 
 int main(int argc, char const *argv[])
 {
-  if(argc > 1)
+  if(argc < 2)
   {
-    if(atoi(argv[1]) < 5)
+    cerr << "Please enter a file to transfer as the first argument" << endl;
+    return 1;
+  }
+  if(argc > 2)
+  {
+    if(atoi(argv[2]) < 5)
     {
       //Buffer size < 32B
       cerr << "Buffer too small" << endl;
       return 1;
     }
-    if(atoi(argv[1]) > 25)
+    if(atoi(argv[2]) > 25)
     {
       //Buffer size > ~33MB
       cerr << "Buffer too big" << endl;
       return 1;
     }
-    if(atoi(argv[2]) > 30)
+    if(argc > 3)
     {
-      //Max message size > 1GB
-      cerr << "Max message size too big" << endl;
-      return 2;
+      if(atoi(argv[3]) > 30)
+      {
+        //Max message size > 1GB
+        cerr << "Max message size too big" << endl;
+        return 2;
+      }
     }
-
   }
   int sock = 0;
   struct sockaddr_in serv_addr;
@@ -46,14 +53,14 @@ int main(int argc, char const *argv[])
   }
 
   //Set recv timeout for socket
-  struct timeval tv;
-  tv.tv_sec = 5; //5 second timeout
-  tv.tv_usec = 0;
-  if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)& tv, sizeof tv))
-  {
-    cerr << "setsockopt failed\n";
-    return -1;
-  }
+  // struct timeval tv;
+  // tv.tv_sec = 5; //5 second timeout
+  // tv.tv_usec = 0;
+  // if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)& tv, sizeof tv))
+  // {
+  //   cerr << "setsockopt failed\n";
+  //   return -1;
+  // }
 
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_port = htons(PORT);
@@ -72,16 +79,18 @@ int main(int argc, char const *argv[])
     return -1;
   }
   //Connected
+  cout << "Connected\n";
   srand(time(NULL));
   char* initBuffer = new char[32];
   int sequenceNumber = rand() % 1000000;
   int acknowledgeNumber = 0;
   int maxBuffer = 6;
   int maxMessage = 10;
-  if(argc > 1)
+  if(argc > 2)
   {
-    maxBuffer = atoi(argv[1]);
-    maxMessage = atoi(argv[2]);
+    maxBuffer = atoi(argv[2]);
+    if(argc > 3)
+      maxMessage = atoi(argv[3]);
   }
   //Send SYN packet
   Packet packet(
@@ -137,8 +146,15 @@ int main(int argc, char const *argv[])
   //Initial handshake complete
 
   //Send REQ packet
-  string filename = "file.txt";
-  if(filename.size() > (bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+MESSAGE_LENGTH)))
+  string filename = argv[1];
+  if(filename.find('/') != string::npos)
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 13);
+    sendPacket(sock, packet);
+    delete[] buffer;
+    return -1;
+  }
+  if(filename.size() > (bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH)))
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 4);
     sendPacket(sock, packet);
@@ -195,7 +211,7 @@ int main(int argc, char const *argv[])
     return -1;
   }
   int chunkSize, chunkTotal;
-  chunkSize = bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH);
+  chunkSize = bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+DATA_LENGTH_LENGTH);
   chunkTotal = packet.getField1() / chunkSize;
   if(packet.getField1() % chunkSize)
     chunkTotal++;

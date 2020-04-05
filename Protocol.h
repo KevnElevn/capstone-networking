@@ -14,8 +14,8 @@ const int MESSAGE_SIZE_LENGTH = 2;
 const int SEQ_ACK_LENGTH = 6;
 const int CHUNK_ID_LENGTH = 9;
 const int FILE_SIZE_LENGTH = 9;
-const int MESSAGE_LENGTH = 9;
-const int DATA_HEADER_LENGTH = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+MESSAGE_LENGTH;
+const int DATA_LENGTH_LENGTH = 9;
+const int DATA_HEADER_LENGTH = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH;
 const int RST_ERROR_LENGTH = 2;
 
 const char DAT = '0';
@@ -43,6 +43,7 @@ const std::unordered_map<int, std::string> RSTERRORS({
   {10, "Expected DON packet"},
   {11, "Expected FAK packet"},
   {12, "Out of sequence packet"},
+  {13, "File name invalid"},
   {97, "No data receieved"},
   {98, "Wait for response timed out"},
   {99, "Bad acknowledge number"}

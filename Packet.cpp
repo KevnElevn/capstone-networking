@@ -46,15 +46,15 @@ void Packet::setPacket(char packetType, int seq, int ack, int f1, int f2, std::s
       break;
 
     case REQ:
-      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+MESSAGE_LENGTH+data.size();
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH+data.size();
       break;
 
     case RAK:
-      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+MESSAGE_LENGTH+data.size();
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH+data.size();
       break;
 
     case DAT:
-      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH+data.size();
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+DATA_LENGTH_LENGTH+data.size();
       break;
 
     case RST:
@@ -69,14 +69,13 @@ void Packet::setPacket(char packetType, int seq, int ack, int f1, int f2, std::s
 void Packet::setPacket(char* buffer)
 {
   std::string str;
-  type = buffer[0];
-  for(int i=PACKET_TYPE_LENGTH; i<PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH; i++)
+  for(int i=0; i<SEQ_ACK_LENGTH; i++)
     str += buffer[i];
   sequence = std::atoi(str.data());
   str.clear();
   if(type != SYN)
   {
-    for(int i=PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH; i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH); i++)
+    for(int i=SEQ_ACK_LENGTH; i<(2*SEQ_ACK_LENGTH); i++)
       str += buffer[i];
     acknowledge = std::atoi(str.data());
     str.clear();
@@ -85,11 +84,11 @@ void Packet::setPacket(char* buffer)
   {
     case SYN:
     {
-      for(int i=PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH; i<PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH; i++)
+      for(int i=SEQ_ACK_LENGTH; i<SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH; i++)
         str += buffer[i];
       field1 = std::atoi(str.data());
       str.clear();
-      for(int i=PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH; i<PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH; i++)
+      for(int i=SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH; i<SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH; i++)
         str += buffer[i];
       field2 = std::atoi(str.data());
       str.clear();
@@ -100,11 +99,11 @@ void Packet::setPacket(char* buffer)
 
     case SAK:
     {
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH); i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH; i++)
+      for(int i=(2*SEQ_ACK_LENGTH); i<(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH; i++)
         str += buffer[i];
       field1 = std::atoi(str.data());
       str.clear();
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH; i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH; i++)
+      for(int i=(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH; i<(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH; i++)
         str += buffer[i];
       field2 = std::atoi(str.data());
       str.clear();
@@ -115,57 +114,45 @@ void Packet::setPacket(char* buffer)
 
     case REQ:
     {
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH); i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+MESSAGE_LENGTH; i++)
+      for(int i=(2*SEQ_ACK_LENGTH); i<(2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH; i++)
         str += buffer[i];
-      field1 = std::atoi(str.data());
+      field2 = std::atoi(str.data());
       str.clear();
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+MESSAGE_LENGTH; i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+MESSAGE_LENGTH+field1; i++)
-        str += buffer[i];
-      data = str;
-      str.clear();
-      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+MESSAGE_LENGTH+field1;
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH;
       break;
     }
 
     case RAK:
     {
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH); i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH; i++)
+      for(int i=(2*SEQ_ACK_LENGTH); i<(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH; i++)
         str += buffer[i];
       field1 = std::atoi(str.data());
       str.clear();
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH; i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+MESSAGE_LENGTH; i++)
+      for(int i=(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH; i<(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH; i++)
         str += buffer[i];
       field2 = std::atoi(str.data());
       str.clear();
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+MESSAGE_LENGTH; i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+MESSAGE_LENGTH+field2; i++)
-        str += buffer[i];
-      data = str;
-      str.clear();
-      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+MESSAGE_LENGTH+field2;
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH;
       break;
     }
 
     case DAT:
     {
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH); i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH; i++)
+      for(int i=(2*SEQ_ACK_LENGTH); i<(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH; i++)
         str += buffer[i];
       field1 = std::atoi(str.data());
       str.clear();
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH; i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH; i++)
+      for(int i=(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH; i<(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+DATA_LENGTH_LENGTH; i++)
         str += buffer[i];
       field2 = std::atoi(str.data());
       str.clear();
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH; i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH+field2; i++)
-        str += buffer[i];
-      data = str;
-      str.clear();
-      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH+field2;
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+DATA_LENGTH_LENGTH;
       break;
     }
 
     case RST:
     {
-      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH); i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+RST_ERROR_LENGTH; i++)
+      for(int i=(2*SEQ_ACK_LENGTH); i<(2*SEQ_ACK_LENGTH)+RST_ERROR_LENGTH; i++)
         str += buffer[i];
       field1 = std::atoi(str.data());
       str.clear();
@@ -176,6 +163,50 @@ void Packet::setPacket(char* buffer)
     default:
       size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH);
   }
+}
+
+void Packet::setType(char t)
+{
+  type = t;
+  switch(type)
+  {
+    case SYN:
+      size = SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH;
+      break;
+
+    case SAK:
+      size = (2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH;
+      break;
+
+    case REQ:
+      size = (2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH;
+      break;
+
+    case RAK:
+      size = (2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH;
+      break;
+
+    case DAT:
+      size = (2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+DATA_LENGTH_LENGTH;
+      break;
+
+    case RST:
+      size = (2*SEQ_ACK_LENGTH)+RST_ERROR_LENGTH;
+      break;
+
+    default:
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH);
+  }
+}
+
+void Packet::setData(char* buffer)
+{
+  data.clear();
+  for(int i=0; i<field2; i++)
+  {
+    data += buffer[i];
+  }
+  size += field2;
 }
 
 void Packet::printPacket()
@@ -206,7 +237,7 @@ void Packet::printPacket()
       std::cout << "REQ" <<std::endl;
       std::cout << "Sequence Number: " << sequence << std::endl;
       std::cout << "Acknowledge Number: " << acknowledge << std::endl;
-      std::cout << "Message Length: " << field1 << std::endl;
+      std::cout << "Message Length: " << field2 << std::endl;
       std::cout << "Filename: " << data << std::endl;
       break;
     }
@@ -229,7 +260,7 @@ void Packet::printPacket()
       std::cout << "Acknowledge Number: " << acknowledge << std::endl;
       std::cout << "Chunk Number: " << field1 << std::endl;
       std::cout << "Message Length: " << field2 << std::endl;
-      std::cout << "Message: " << data << std::endl;
+      //std::cout << "Message: " << data << std::endl;
       break;
     }
 
@@ -296,7 +327,7 @@ std::string Packet::toString() const
     case REQ:
     {
       std::string messageLengthStr = std::to_string(field1);
-      messageLengthStr.insert(messageLengthStr.begin(), MESSAGE_LENGTH-messageLengthStr.size(), '0');
+      messageLengthStr.insert(messageLengthStr.begin(), DATA_LENGTH_LENGTH-messageLengthStr.size(), '0');
 
       return REQ + seq + ack + messageLengthStr + data;
     }
@@ -306,7 +337,7 @@ std::string Packet::toString() const
       std::string fileSizeStr = std::to_string(field1);
       fileSizeStr.insert(fileSizeStr.begin(), FILE_SIZE_LENGTH-fileSizeStr.size(), '0');
       std::string messageLengthStr = std::to_string(field2);
-      messageLengthStr.insert(messageLengthStr.begin(), MESSAGE_LENGTH-messageLengthStr.size(), '0');
+      messageLengthStr.insert(messageLengthStr.begin(), DATA_LENGTH_LENGTH-messageLengthStr.size(), '0');
 
       return RAK + seq + ack + fileSizeStr + messageLengthStr + data;
     }
@@ -316,7 +347,7 @@ std::string Packet::toString() const
       std::string chunkId = std::to_string(field1);
       chunkId.insert(chunkId.begin(), FILE_SIZE_LENGTH-chunkId.size(), '0');
       std::string messageLengthStr = std::to_string(field2);
-      messageLengthStr.insert(messageLengthStr.begin(), MESSAGE_LENGTH-messageLengthStr.size(), '0');
+      messageLengthStr.insert(messageLengthStr.begin(), DATA_LENGTH_LENGTH-messageLengthStr.size(), '0');
 
       return DAT + seq + ack + chunkId + messageLengthStr + data;
     }
