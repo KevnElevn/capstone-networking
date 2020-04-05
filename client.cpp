@@ -36,12 +36,22 @@ int main(int argc, char const *argv[])
     }
 
   }
-  int sock = 0, valread;
+  int sock = 0;
   struct sockaddr_in serv_addr;
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
   {
     cerr << "Socket creation error \n";
+    return -1;
+  }
+
+  //Set recv timeout for socket
+  struct timeval tv;
+  tv.tv_sec = 5; //5 second timeout
+  tv.tv_usec = 0;
+  if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)& tv, sizeof tv))
+  {
+    cerr << "setsockopt failed\n";
     return -1;
   }
 
@@ -84,33 +94,55 @@ int main(int argc, char const *argv[])
   sendPacket(sock, packet);
   sequenceNumber = addSeqAckNumber(sequenceNumber, 1);
   //Read SAK packet
-  valread = recvPacket(sock, initBuffer, PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH, packet);
+  char packetType = recvPacket(sock, initBuffer, PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH, packet);
+  if(packetType == 't')
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
+    sendPacket(sock, packet);
+    delete[] initBuffer;
+    return -1;
+  }
+  if(packetType == 'e')
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 97);
+    sendPacket(sock, packet);
+    delete[] initBuffer;
+    return -1;
+  }
   //Process SAK packet and make an ACK packet
   acknowledgeNumber = addSeqAckNumber(packet.getSeq(), 1);
-  if(packet.getType() != SAK || packet.getAck() != sequenceNumber)
+  if(packetType != SAK)
   {
-    packet.setPacket(RST, sequenceNumber, acknowledgeNumber);
-    sendPacket(sock, packet);;
-    cerr << "Expected a SAK packet\n";
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 2);
+    sendPacket(sock, packet);
+    delete[] initBuffer;
+    return -1;
+  }
+  if(packet.getAck() != sequenceNumber)
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 99);
+    sendPacket(sock, packet);
+    delete[] initBuffer;
     return -1;
   }
   maxBuffer = min(maxBuffer, packet.getField1());
   maxMessage = min(maxMessage, packet.getField2());
   packet.setPacket(ACK, sequenceNumber, acknowledgeNumber);
+  sendPacket(sock, packet);
   sequenceNumber = addSeqAckNumber(sequenceNumber, 1);
   int bufferVal = static_cast<int>(pow(2,maxBuffer));
   int maxMessageVal = static_cast<int>(pow(2,maxMessage));
   delete [] initBuffer;
   char* buffer = new char[bufferVal];
-  sendPacket(sock, packet);
   //Initial handshake complete
+
   //Send REQ packet
   string filename = "file.txt";
   if(filename.size() > (bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+MESSAGE_LENGTH)))
   {
-    packet.setPacket(RST, sequenceNumber, acknowledgeNumber);
-    sendPacket(sock, packet);;
-    cerr << "Filename too long to send with current buffer size. Try again with a bigger buffer.\n";
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 4);
+    sendPacket(sock, packet);
+    delete[] buffer;
     return -1;
   }
   packet.setPacket(
@@ -124,66 +156,136 @@ int main(int argc, char const *argv[])
   sendPacket(sock, packet);
   sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
   //Receive RAK packet
-  valread = recvPacket(sock, buffer, bufferVal, packet);
-  acknowledgeNumber = addSeqAckNumber(acknowledgeNumber, packet.getSize());
-  //Check and send response to RAK
-  if(packet.getType() != RAK || packet.getAck() != sequenceNumber || packet.getData() != filename)
+  packetType = recvPacket(sock, buffer, bufferVal, packet);
+  if(packetType == 't')
   {
-    packet.setPacket(RST, sequenceNumber, acknowledgeNumber);
-    sendPacket(sock, packet);;
-    cerr << "Expected a RAK packet\n";
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
+    sendPacket(sock, packet);
+    delete[] buffer;
     return -1;
   }
-  int chunkSize = bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH);
-  int chunkTotal = packet.getField1() / chunkSize;
+  if(packetType == 'e')
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 97);
+    sendPacket(sock, packet);
+    delete[] buffer;
+    return -1;
+  }
+  acknowledgeNumber = addSeqAckNumber(acknowledgeNumber, packet.getSize());
+  //Check and send response to RAK
+  if(packet.getType() != RAK)
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 7);
+    sendPacket(sock, packet);
+    delete[] buffer;
+    return -1;
+  }
+  if(packet.getAck() != sequenceNumber)
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 99);
+    sendPacket(sock, packet);
+    delete[] buffer;
+    return -1;
+  }
+  if(packet.getData() != filename)
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 8);
+    sendPacket(sock, packet);
+    delete[] buffer;
+    return -1;
+  }
+  int chunkSize, chunkTotal;
+  chunkSize = bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH);
+  chunkTotal = packet.getField1() / chunkSize;
   if(packet.getField1() % chunkSize)
     chunkTotal++;
   cout << "****Number of chunks: " << chunkTotal << "****\n";
   cout << "****Chunk size: " << chunkSize << "****\n";
+  ofstream writeFile;
+  writeFile.open("output/"+filename);
+  if(!writeFile.is_open())
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 9);
+    sendPacket(sock, packet);
+    goto bad_end;
+  }
   packet.setPacket(ACK, sequenceNumber, acknowledgeNumber);
   sendPacket(sock, packet);
   sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
   //Receive DAT packets
-  ofstream writeFile("output/"+filename);
-  if(!writeFile.is_open())
-  {
-    packet.setPacket(RST, sequenceNumber, acknowledgeNumber);
-    sendPacket(sock, packet);
-    cerr << "Unable to open output/" << filename << endl;
-    return -1;
-  }
-  while(recvPacket(sock, buffer, bufferVal, packet) == DAT)
+  packetType = recvPacket(sock, buffer, bufferVal, packet);
+  while(packetType == DAT)
   {
     //Assuming no dropped packets
     acknowledgeNumber = packet.getSeq() + packet.getSize();
     writeFile.write(packet.getData().data(), packet.getField2());
+    packetType = recvPacket(sock, buffer, bufferVal, packet);
+  }
+  if(packetType == 't')
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
+    sendPacket(sock, packet);
+    goto bad_end;
+  }
+  if(packetType == 'e')
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 97);
+    sendPacket(sock, packet);
+    goto bad_end;
   }
   acknowledgeNumber = packet.getSeq() + packet.getSize();
-  if(packet.getType() != DON || packet.getAck() != sequenceNumber)
+  if(packet.getType() != DON)
   {
-    packet.setPacket(RST, sequenceNumber, acknowledgeNumber);
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 10);
     sendPacket(sock, packet);
-    return -1;
+    goto bad_end;
   }
+  if(packet.getAck() != sequenceNumber)
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 99);
+    sendPacket(sock, packet);
+    goto bad_end;
+  }
+  writeFile.close();
   //If everything is good, send FIN
   packet.setPacket(FIN, sequenceNumber, acknowledgeNumber);
   sendPacket(sock, packet);
   sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
   //Receive FAK
-  valread = recvPacket(sock, buffer, bufferVal, packet);
-  acknowledgeNumber = addSeqAckNumber(acknowledgeNumber, packet.getSize());
-  if(packet.getType() != FAK || packet.getAck() != sequenceNumber)
+  packetType = recvPacket(sock, buffer, bufferVal, packet);
+  if(packetType == 't')
   {
-    packet.setPacket(RST, sequenceNumber, acknowledgeNumber);
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
     sendPacket(sock, packet);
-    return -1;
+    goto bad_end;
+  }
+  if(packetType == 'e')
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 97);
+    sendPacket(sock, packet);
+    goto bad_end;
+  }
+  acknowledgeNumber = addSeqAckNumber(acknowledgeNumber, packet.getSize());
+  if(packet.getType() != FAK)
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 11);
+    sendPacket(sock, packet);
+    goto bad_end;
+  }
+  if(packet.getAck() != sequenceNumber)
+  {
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 99);
+    sendPacket(sock, packet);
+    goto bad_end;
   }
   //Send ACK
   packet.setPacket(ACK, sequenceNumber, acknowledgeNumber);
   sendPacket(sock, packet);
+  delete[] buffer;
+  return 0;
 
-  writeFile.close();
+  bad_end:
   delete[] buffer;
 
-  return 0;
+  return -1;
 }

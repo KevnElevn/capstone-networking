@@ -12,31 +12,28 @@ int addSeqAckNumber(int target, int num)
   return target;
 }
 
-bool checkAck(int& seq, int& ack, Packet& packet)
-{
-  if(packet.getType() != ACK || packet.getAck() != seq)
-    return false;
-  else
-    return true;
-}
-
 void sendPacket(int socket, Packet& packet)
 {
   std::string sendStr = packet.toString();
   send(socket, sendStr.data(), packet.getSize(), 0);
   std::cout << "Sent: " << sendStr << std::endl;
   packet.printPacket();
+  std::cout << "----------------------------------\n";
 }
 
-int recvPacket(int socket, char* buffer, int bufferSize, Packet& packet)
+char recvPacket(int socket, char* buffer, int bufferSize, Packet& packet)
 {
   int valread = recv(socket, buffer, bufferSize, 0);
-  if(valread)
+  if(valread > 0)
   {
     std::cout << "Receive buffer: " << buffer << std::endl;
     packet.setPacket(buffer);
     packet.printPacket();
+    std::cout << "----------------------------------\n";
     return packet.getType();
   }
-  return -1;
+  if(valread == 0)
+    return 'e'; //Empty string
+  else
+    return 't'; //Timeout
 }

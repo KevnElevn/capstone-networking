@@ -4,6 +4,8 @@
 #include <iostream>
 #include <cstdlib>
 
+extern const std::unordered_map<int, std::string> RSTERRORS;
+
 Packet::Packet()
 {
   size = 0;
@@ -55,6 +57,10 @@ void Packet::setPacket(char packetType, int seq, int ack, int f1, int f2, std::s
       size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+MESSAGE_LENGTH+data.size();
       break;
 
+    case RST:
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+RST_ERROR_LENGTH;
+      break;
+
     default:
       size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH);
   }
@@ -79,7 +85,6 @@ void Packet::setPacket(char* buffer)
   {
     case SYN:
     {
-      size = PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH;
       for(int i=PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH; i<PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH; i++)
         str += buffer[i];
       field1 = std::atoi(str.data());
@@ -89,12 +94,12 @@ void Packet::setPacket(char* buffer)
       field2 = std::atoi(str.data());
       str.clear();
       data.clear();
+      size = PACKET_TYPE_LENGTH+SEQ_ACK_LENGTH+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH;
       break;
     }
 
     case SAK:
     {
-      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH;
       for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH); i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH; i++)
         str += buffer[i];
       field1 = std::atoi(str.data());
@@ -104,6 +109,7 @@ void Packet::setPacket(char* buffer)
       field2 = std::atoi(str.data());
       str.clear();
       data.clear();
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH;
       break;
     }
 
@@ -157,12 +163,22 @@ void Packet::setPacket(char* buffer)
       break;
     }
 
+    case RST:
+    {
+      for(int i=PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH); i<PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+RST_ERROR_LENGTH; i++)
+        str += buffer[i];
+      field1 = std::atoi(str.data());
+      str.clear();
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+RST_ERROR_LENGTH;
+      break;
+    }
+
     default:
       size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH);
   }
 }
 
-void Packet::printPacket() const
+void Packet::printPacket()
 {
   switch(type)
   {
@@ -217,12 +233,21 @@ void Packet::printPacket() const
       break;
     }
 
+    case RST:
+    {
+      std::cout << "RST" << std::endl;
+      std::cout << "Sequence Number: " << sequence << std::endl;
+      std::cout << "Acknowledge Number: " << acknowledge << std::endl;
+      std::cout << "RST error code: " << field1 << std::endl;
+      std::cout << "RST reason: " << RSTERRORS.at(field1) << std::endl;
+      break;
+    }
+
     default:
     {
         switch(type)
       {
         case ACK: std::cout << "ACK" << std::endl; break;
-        case RST: std::cout << "RST" << std::endl; break;
         case DON: std::cout << "DON" << std::endl; break;
         case FIN: std::cout << "FIN" << std::endl; break;
         case FAK: std::cout << "FAK" << std::endl; break;
@@ -294,6 +319,14 @@ std::string Packet::toString() const
       messageLengthStr.insert(messageLengthStr.begin(), MESSAGE_LENGTH-messageLengthStr.size(), '0');
 
       return DAT + seq + ack + chunkId + messageLengthStr + data;
+    }
+
+    case RST:
+    {
+      std::string rstCode = std::to_string(field1);
+      rstCode.insert(rstCode.begin(), RST_ERROR_LENGTH-rstCode.size(), '0');
+
+      return RST + seq + ack + rstCode;
     }
 
     default:

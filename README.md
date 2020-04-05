@@ -25,8 +25,8 @@ Buffer Overflow:
   -Send RST packet and connection
 
 Unresponsive client or server:
-1. Client sends SYN packet to server
-2. Server responds with a SYNACK packet
+1. Server and client have a timeout window
+2. After listening for a response for a certain amount of time, the listener will send a RST packet and end the connection.
 
 How does a receiver of a packet check the expected sequence number?
 -When a packet is received, the size of the packet (or 1 if it's an initial handshake packet)
@@ -37,4 +37,5 @@ How will the sender know which packets to resend?
 -
 
 To do next:
--Error table
+-Arguments read/write + filename
+-REQ read, write, resend - use switch cases
