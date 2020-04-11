@@ -46,7 +46,7 @@ void Packet::setPacket(char packetType, int seq, int ack, int f1, int f2, std::s
       break;
 
     case REQ:
-      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH+data.size();
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH+data.size();
       break;
 
     case RAK:
@@ -114,11 +114,15 @@ void Packet::setPacket(char* buffer)
 
     case REQ:
     {
-      for(int i=(2*SEQ_ACK_LENGTH); i<(2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH; i++)
+      for(int i=(2*SEQ_ACK_LENGTH); i<(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH; i++)
+        str += buffer[i];
+      field1 = std::atoi(str.data());
+      str.clear();
+      for(int i=(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH; i<(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH; i++)
         str += buffer[i];
       field2 = std::atoi(str.data());
       str.clear();
-      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH;
+      size = PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH;
       break;
     }
 
@@ -179,7 +183,7 @@ void Packet::setType(char t)
       break;
 
     case REQ:
-      size = (2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH;
+      size = (2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH;
       break;
 
     case RAK:
@@ -237,6 +241,14 @@ void Packet::printPacket()
       std::cout << "REQ" <<std::endl;
       std::cout << "Sequence Number: " << sequence << std::endl;
       std::cout << "Acknowledge Number: " << acknowledge << std::endl;
+      std::cout << "Request operation: ";
+      if(field1 == 0)
+        std::cout << "read" << std::endl;
+      else
+      {
+        std::cout << "write" << std::endl;
+        std::cout << "File size: " << field1 << std::endl;
+      }
       std::cout << "Message Length: " << field2 << std::endl;
       std::cout << "Filename: " << data << std::endl;
       break;
@@ -326,10 +338,12 @@ std::string Packet::toString() const
 
     case REQ:
     {
-      std::string messageLengthStr = std::to_string(field1);
+      std::string reqOp = std::to_string(field1);
+      reqOp.insert(reqOp.begin(), FILE_SIZE_LENGTH-reqOp.size(), '0');
+      std::string messageLengthStr = std::to_string(field2);
       messageLengthStr.insert(messageLengthStr.begin(), DATA_LENGTH_LENGTH-messageLengthStr.size(), '0');
 
-      return REQ + seq + ack + messageLengthStr + data;
+      return REQ + seq + ack + reqOp + messageLengthStr + data;
     }
 
     case RAK:
