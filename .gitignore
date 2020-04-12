@@ -1,5 +1,4 @@
 client
 server
 *.o
-client-dir
-server-dir
+files
