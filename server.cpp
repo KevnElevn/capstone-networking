@@ -197,7 +197,7 @@ int main(int argc, char const *argv[])
         string filename = packet.getData();
         if(packet.getField1() == 0)
         {
-          ifstream readFile("files/"+filename, ios::in | ios::ate | ios::binary);
+          ifstream readFile(filename, ios::in | ios::ate | ios::binary);
           if(!readFile.is_open())
           {
             packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 5);
@@ -289,7 +289,7 @@ int main(int argc, char const *argv[])
           cout << "****Number of chunks: " << chunkTotal << "****\n";
           cout << "****Chunk size: " << chunkSize << "****\n";
           ofstream writeFile;
-          writeFile.open("files/"+filename);
+          writeFile.open(filename);
           if(!writeFile.is_open())
           {
             packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 9);
