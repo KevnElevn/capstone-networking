@@ -9,15 +9,15 @@
 #include <cmath>
 #include "Protocol.h"
 #include "Packet.h"
-#define PORT 8080
+#define PORT 7253
 
 using namespace std;
 
 int main(int argc, char const *argv[])
 {
-  if(argc < 3)
+  if(argc < 4)
   {
-    cerr << "Please enter 'r' for read or 'w' for write, followed by a file name to read from or write to." << endl;
+    cerr << "Please enter 'r' for read or 'w' for write, followed by a file name to read from or write to, and an IP address to connect to." << endl;
     return 1;
   }
   else
@@ -28,23 +28,23 @@ int main(int argc, char const *argv[])
       return 1;
     }
   }
-  if(argc > 3)
+  if(argc > 4)
   {
-    if(atoi(argv[3]) < 5)
+    if(atoi(argv[4]) < 5)
     {
       //Buffer size < 32B
       cerr << "Buffer too small" << endl;
       return 1;
     }
-    if(atoi(argv[3]) > 25)
+    if(atoi(argv[4]) > 25)
     {
       //Buffer size > ~33MB
       cerr << "Buffer too big" << endl;
       return 1;
     }
-    if(argc > 4)
+    if(argc > 5)
     {
-      if(atoi(argv[4]) > 30)
+      if(atoi(argv[5]) > 30)
       {
         //Max message size > 1GB
         cerr << "Max message size too big" << endl;
@@ -76,7 +76,7 @@ int main(int argc, char const *argv[])
 
   // Convert IPv4 and IPv6 addresses from text to binary form (Network byte order)
   //sin_port and sin_addr must be in network byte order
-  if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)
+  if(inet_pton(AF_INET, argv[3], &serv_addr.sin_addr)<=0)
   {
     cerr << "Invalid address/ Address not supported \n";
     return -1;
@@ -96,11 +96,11 @@ int main(int argc, char const *argv[])
   int acknowledgeNumber = 0;
   int maxBuffer = 6;
   int maxMessage = 10;
-  if(argc > 3)
+  if(argc > 4)
   {
-    maxBuffer = atoi(argv[3]);
-    if(argc > 4)
-      maxMessage = atoi(argv[4]);
+    maxBuffer = atoi(argv[4]);
+    if(argc > 5)
+      maxMessage = atoi(argv[5]);
   }
   //Send SYN packet
   Packet packet(
@@ -218,7 +218,7 @@ int main(int argc, char const *argv[])
     cout << "****Number of chunks: " << chunkTotal << "****\n";
     cout << "****Chunk size: " << chunkSize << "****\n";
     ofstream writeFile;
-    writeFile.open("client-dir/"+filename);
+    writeFile.open("files/"+filename);
     if(!writeFile.is_open())
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 9);
@@ -241,7 +241,7 @@ int main(int argc, char const *argv[])
   }
   else
   {
-    ifstream readFile("client-dir/"+filename, ios::in | ios::ate | ios::binary);
+    ifstream readFile("files/"+filename, ios::in | ios::ate | ios::binary);
     if(!readFile.is_open())
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 5);

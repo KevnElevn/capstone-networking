@@ -12,7 +12,7 @@
 #include <ctime>
 #include "Protocol.h"
 #include "Packet.h"
-#define PORT 8080
+#define PORT 7253
 
 using namespace std;
 
@@ -197,7 +197,7 @@ int main(int argc, char const *argv[])
         string filename = packet.getData();
         if(packet.getField1() == 0)
         {
-          ifstream readFile("server-dir/"+filename, ios::in | ios::ate | ios::binary);
+          ifstream readFile("files/"+filename, ios::in | ios::ate | ios::binary);
           if(!readFile.is_open())
           {
             packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 5);
@@ -289,7 +289,7 @@ int main(int argc, char const *argv[])
           cout << "****Number of chunks: " << chunkTotal << "****\n";
           cout << "****Chunk size: " << chunkSize << "****\n";
           ofstream writeFile;
-          writeFile.open("server-dir/"+filename);
+          writeFile.open("files/"+filename);
           if(!writeFile.is_open())
           {
             packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 9);
