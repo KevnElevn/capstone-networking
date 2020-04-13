@@ -29,13 +29,8 @@ Unresponsive client or server:
 2. After listening for a response for a certain amount of time, the listener will send a RST packet and end the connection.
 
 How does a receiver of a packet check the expected sequence number?
--When a packet is received, the size of the packet (or 1 if it's an initial handshake packet)
- is added to the receiver's acknowledge number. This is checked against the packet sender's sequence number.
+  When a packet is received, the size of the packet (or 1 if it's an initial handshake packet)is added to the receiver's acknowledge number. This is checked against the packet sender's sequence number.
 What does it do when it receives an unexpected sequence number?
--The receiver will send a RST packet and end the connection.
-How will the sender know which packets to resend?
+  The receiver will send a RST packet and end the connection.
+  How will the sender know which packets to resend?
 -
-
-To do next:
--Arguments read/write + filename
--REQ read, write, resend - use switch cases
