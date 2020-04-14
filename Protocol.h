@@ -1,12 +1,27 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 #include <string>
+#include <vector>
 #include <unordered_map>
 #include "Packet.h"
 
+struct Session
+{
+  int sequenceNumber;
+  int acknowledgeNumber;
+  int maxBuffer;
+  int maxMessage;
+  std::vector<char> buffer;
+};
+
 int addSeqAckNumber(int seq, int num);
 void sendPacket(int socket, Packet& packet);
-char recvPacket(int socket, char* buffer, int bufferSize, Packet& packet);
+char recvPacket(int socket, char* buffer, Packet& packet);
+int handleSynPacket(int socket, Packet& packet, Session& session, char packetType);
+int handleAckPacket(int socket, Packet& packet, Session& session, char packetType, bool first = 0);
+int handleReqPacket(int socket, Packet& packet, Session& session);
+int handleFinPacket(int socket, Packet& packet, Session& session);
+void handleRstPacket(int socket, Packet& packet, Session& session);
 
 const int PACKET_TYPE_LENGTH = 1;
 const int BUFFER_SIZE_LENGTH = 2;
@@ -35,7 +50,7 @@ const std::unordered_map<int, std::string> RSTERRORS({
   {2, "Expected SAK packet"},
   {3, "Expected ACK packet"},
   {4, "Filename too long to send with current buffer size. Try again with a bigger buffer."},
-  {5, "File not found"},
+  {5, "Unable to find or open file"},
   {6, "File is too large for current MaxMessage value"},
   {7, "Expected RAK packet"},
   {8, "Different filename acknowledged"},
@@ -44,6 +59,7 @@ const std::unordered_map<int, std::string> RSTERRORS({
   {11, "Expected FAK packet"},
   {12, "Out of sequence packet"},
   {13, "File name invalid"},
+  {96, "Connection reset by other side"},
   {97, "No data receieved"},
   {98, "Wait for response timed out"},
   {99, "Bad acknowledge number"}
