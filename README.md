@@ -1,4 +1,17 @@
 # capstone-networking
+Instructions to use:
+1. Clone this repository onto a Linux machine
+2. Have g++ and make installed. In the capstone-networking directory, run 'make server' and 'make client'
+3. Run './server [max_buffer] [max_message]' to begin listening on port 7253.
+   <max_buffer> affects 2^(max_buffer) and determines the maximum buffer allowed for communication. Default 10 -> 1KB
+   <max_message> affects 2^(max_message) and determines the maximum file size allowed for file transfer. Default 30 -> 1GB
+4. To read a file from another host running the server, run './client r <filename> <ip_address> [max_buffer] [max_message]'
+  <max_buffer> affects 2^(max_buffer) and determines the maximum buffer allowed for communication. Default 10 -> 1KB
+  <max_message> affects 2^(max_message) and determines the maximum file size allowed for file transfer. Default 30 -> 262MB
+  If successful, the program will return a 0, and the requested file will be in the files directory.
+5. To write a file to another host,  run './client r <filename> <ip_address> [max_buffer] [max_message]'
+  If successful, the program will return a 0, and the given file will be written into the other host's files directory
+
 
 Handshake:
 1. Client sends SYN packet to server
@@ -33,4 +46,3 @@ How does a receiver of a packet check the expected sequence number?
 What does it do when it receives an unexpected sequence number?
   The receiver will send a RST packet and end the connection.
   How will the sender know which packets to resend?
--

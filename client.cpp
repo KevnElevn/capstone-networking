@@ -94,8 +94,8 @@ int main(int argc, char const *argv[])
   buffer.reserve(32);
   int sequenceNumber = rand() % 1000000;
   int acknowledgeNumber = 0;
-  int maxBuffer = 6;
-  int maxMessage = 10;
+  int maxBuffer = 10;
+  int maxMessage = 18;
   if(argc > 4)
   {
     maxBuffer = atoi(argv[4]);
