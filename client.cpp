@@ -113,7 +113,7 @@ int main(int argc, char const *argv[])
   sendPacket(sock, packet);
   sequenceNumber = addSeqAckNumber(sequenceNumber, 1);
   //Read SAK packet
-  char packetType = recvPacket(sock, buffer.data(), PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+BUFFER_SIZE_LENGTH+MESSAGE_SIZE_LENGTH, packet);
+  char packetType = recvPacket(sock, buffer.data(), packet);
   if(packetType == 't')
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
@@ -177,7 +177,7 @@ int main(int argc, char const *argv[])
     sendPacket(sock, packet);
     sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
     //Receive RAK packet
-    packetType = recvPacket(sock, buffer.data(), bufferVal, packet);
+    packetType = recvPacket(sock, buffer.data(), packet);
     if(packetType == 't')
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
@@ -229,13 +229,13 @@ int main(int argc, char const *argv[])
     sendPacket(sock, packet);
     sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
     //Receive DAT packets
-    packetType = recvPacket(sock, buffer.data(), bufferVal, packet);
+    packetType = recvPacket(sock, buffer.data(), packet);
     while(packetType == DAT)
     {
       //Assuming no dropped packets
       acknowledgeNumber = packet.getSeq() + packet.getSize();
       writeFile.write(packet.getData().data(), packet.getField2());
-      packetType = recvPacket(sock, buffer.data(), bufferVal, packet);
+      packetType = recvPacket(sock, buffer.data(), packet);
     }
     writeFile.close();
   }
@@ -266,7 +266,7 @@ int main(int argc, char const *argv[])
     sendPacket(sock, packet);
     sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
     //Receive RAK packet
-    packetType = recvPacket(sock, buffer.data(), bufferVal, packet);
+    packetType = recvPacket(sock, buffer.data(), packet);
     if(packetType == 't')
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
@@ -328,7 +328,7 @@ int main(int argc, char const *argv[])
     packet.setPacket(DON, sequenceNumber, acknowledgeNumber);
     sendPacket(sock, packet);
     sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
-    packetType = recvPacket(sock, buffer.data(), bufferVal, packet);
+    packetType = recvPacket(sock, buffer.data(), packet);
   }
   if(packetType == 't')
   {
@@ -360,7 +360,7 @@ int main(int argc, char const *argv[])
   sendPacket(sock, packet);
   sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
   //Receive FAK
-  packetType = recvPacket(sock, buffer.data(), bufferVal, packet);
+  packetType = recvPacket(sock, buffer.data(), packet);
   if(packetType == 't')
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
