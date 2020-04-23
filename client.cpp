@@ -9,7 +9,6 @@
 #include <cmath>
 #include "Protocol.h"
 #include "Packet.h"
-#define PORT 7253
 
 using namespace std;
 
@@ -17,7 +16,7 @@ int main(int argc, char const *argv[])
 {
   if(argc < 4)
   {
-    cerr << "Please enter 'r' for read or 'w' for write, followed by a file name to read from or write to, and an IP address to connect to." << endl;
+    cerr << "Please enter 'r' for read or 'w' for write, followed by a file name to read from or write to, and port to connect to." << endl;
     return 1;
   }
   else
@@ -54,6 +53,7 @@ int main(int argc, char const *argv[])
   }
   int sock = 0;
   struct sockaddr_in serv_addr;
+  short PORT = atoi(argv[3]);
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
   {
@@ -76,7 +76,7 @@ int main(int argc, char const *argv[])
 
   // Convert IPv4 and IPv6 addresses from text to binary form (Network byte order)
   //sin_port and sin_addr must be in network byte order
-  if(inet_pton(AF_INET, argv[3], &serv_addr.sin_addr)<=0)
+  if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)
   {
     cerr << "Invalid address/ Address not supported \n";
     return -1;

@@ -10,29 +10,33 @@
 #include <ctime>
 #include "Protocol.h"
 #include "Packet.h"
-#define PORT 7253
 
 using namespace std;
 
 int main(int argc, char const *argv[])
 {
-  if(argc > 1)
+  if(argc < 2)
+    {
+      cerr << "Enter a port to listen to" << endl;
+      return 1;
+    }
+  if(argc > 2)
   {
-    if(atoi(argv[1]) < 5)
+    if(atoi(argv[2]) < 5)
     {
       //Buffer size < 32B
       cerr << "Buffer too small" << endl;
       return 1;
     }
-    if(atoi(argv[1]) > 26)
+    if(atoi(argv[2]) > 26)
     {
       //Buffer size > ~66MB
       cerr << "Buffer too big" << endl;
       return 1;
     }
-    if(argc > 2)
+    if(argc > 3)
     {
-      if(atoi(argv[2]) > 31)
+      if(atoi(argv[3]) > 31)
       {
         //Max message size > 2GB
         cerr << "Max message size too big" << endl;
@@ -46,7 +50,7 @@ int main(int argc, char const *argv[])
   struct sockaddr_in address;
   int opt = 1;    //used for setsockopt() to manipulate options for the socket sockfd
   int addrlen = sizeof(address);
-
+  short PORT = atoi(argv[1]);
   // Create socket file descriptor
   if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
   /*
@@ -105,11 +109,11 @@ int main(int argc, char const *argv[])
     srand(time(NULL)+1);
     Session session{rand()%1000000, 0, 10, 30, {}};
     session.buffer.reserve(32);
-    if(argc > 1)
+    if(argc > 2)
     {
-      session.maxBuffer = atoi(argv[1]);
-      if(argc > 2)
-        session.maxMessage = atoi(argv[2]);
+      session.maxBuffer = atoi(argv[2]);
+      if(argc > 3)
+        session.maxMessage = atoi(argv[3]);
     }
     //Read SYN packet
     Packet packet;
