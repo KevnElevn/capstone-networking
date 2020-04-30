@@ -196,7 +196,7 @@ int handleReqPacket(int socket, Packet& packet, Session& session)
     sendPacket(socket, packet);
     session.sequenceNumber = addSeqAckNumber(session.sequenceNumber, packet.getSize());
   }
-  else //Write request
+  else if(packet.getField1() > 0) //Write request
   {
     int chunkSize, chunkTotal;
     chunkSize = session.maxBuffer - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+DATA_LENGTH_LENGTH);
@@ -260,7 +260,26 @@ int handleReqPacket(int socket, Packet& packet, Session& session)
     writeFile.close();
     packet.setPacket(DON, session.sequenceNumber, session.acknowledgeNumber);
     sendPacket(socket, packet);
-    session.sequenceNumber = addSeqAckNumber( session.sequenceNumber, packet.getSize());
+    session.sequenceNumber = addSeqAckNumber(session.sequenceNumber, packet.getSize());
+  }
+  else if(packet.getField1() < 0) //Update request +:123:
+  {
+    //Quick and dirty
+    filename += '\n';
+    std::ofstream updatesFile();
+    updatesFile.open("updates.txt");
+    if(updatesFile.is_open())
+      updatesFile << filename;
+    else
+    {
+      packet.setPacket(RST, session.sequenceNumber, session.acknowledgeNumber, 9);
+      sendPacket(socket, packet);
+      return 9;
+    }
+    updatesFile.close();
+    packet.setPacket(DON, session.sequenceNumber, session.acknowledgeNumber);
+    sendPacket(socket, packet);
+    session.sequenceNumber = addSeqAckNumber(session.sequenceNumber, packet.getSize());
   }
   return 0;
 }
