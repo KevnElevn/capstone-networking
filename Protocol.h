@@ -45,7 +45,7 @@ const char FAK = '8';
 const char RST = '9';
 
 const std::unordered_map<int, std::string> RSTERRORS({
-  {0, "Missing error code"},
+  {-1, "Missing error code"},
   {1, "Expected SYN packet"},
   {2, "Expected SAK packet"},
   {3, "Expected ACK packet"},

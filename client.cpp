@@ -14,40 +14,43 @@ using namespace std;
 
 int main(int argc, char const *argv[])
 {
+  int error = 0;
   if(argc < 4)
   {
-    cerr << "Please enter 'r' for read or 'w' for write, followed by a file name to read from or write to, and port to connect to." << endl;
-    return 1;
+    error = 101;
+    cerr << "Error " << error << ": Please enter 'r' for read or 'w' for write, followed by a file name to read from or write to, and port to connect to." << endl;
+    return error;
   }
-  else
+  if(argv[1][0] != 'r' && argv[1][0] != 'w')
   {
-    if(argv[1][0] != 'r' && argv[1][0] != 'w')
-    {
-      cerr << "Please enter 'r' for read or 'w' for write" << endl;
-      return 1;
-    }
+    error = 102;
+    cerr << "Error " << error << ": Please enter 'r' for read or 'w' for write" << endl;
+    return error;
   }
   if(argc > 4)
   {
     if(atoi(argv[4]) < 5)
     {
       //Buffer size < 32B
-      cerr << "Buffer too small" << endl;
-      return 1;
+      error = 103;
+      cerr << "Error " << error << ": Buffer too small" << endl;
+      return error;
     }
     if(atoi(argv[4]) > 25)
     {
       //Buffer size > ~33MB
-      cerr << "Buffer too big" << endl;
-      return 1;
+      error = 104;
+      cerr << "Error " << error << ": Buffer too big" << endl;
+      return error;
     }
     if(argc > 5)
     {
       if(atoi(argv[5]) > 30)
       {
         //Max message size > 1GB
-        cerr << "Max message size too big" << endl;
-        return 2;
+        error = 105;
+        cerr << "Error " << error << ": Max message size too big" << endl;
+        return error;
       }
     }
   }
@@ -57,8 +60,9 @@ int main(int argc, char const *argv[])
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
   {
-    cerr << "Socket creation error \n";
-    return -1;
+    error = 106;
+    cerr << "Error " << error << ": Socket creation error \n";
+    return error;
   }
 
   //Set recv timeout for socket
@@ -78,14 +82,16 @@ int main(int argc, char const *argv[])
   //sin_port and sin_addr must be in network byte order
   if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)
   {
-    cerr << "Invalid address/ Address not supported \n";
-    return -1;
+    error = 107;
+    cerr << "Error " << error << ": Invalid address/ Address not supported \n";
+    return error;
   }
 
   if(connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
   {
-    cerr << "Connection failed \n";
-    return -1;
+    error = 108;
+    cerr << "Error " << error << ": Connection failed \n";
+    return error;
   }
   //Connected
   cout << "Connected\n";
@@ -118,13 +124,15 @@ int main(int argc, char const *argv[])
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 98: " << RSTERRORS.at(98) << endl;
+    return 98;
   }
   if(packetType == 'e')
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 97);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 97: " << RSTERRORS.at(97) << endl;
+    return 97;
   }
   //Process SAK packet and make an ACK packet
   acknowledgeNumber = addSeqAckNumber(packet.getSeq(), 1);
@@ -132,13 +140,15 @@ int main(int argc, char const *argv[])
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 2);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 2: " << RSTERRORS.at(2) << endl;
+    return 2;
   }
   if(packet.getAck() != sequenceNumber)
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 99);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 99: " << RSTERRORS.at(99) << endl;
+    return 99;
   }
   maxBuffer = min(maxBuffer, packet.getField1());
   maxMessage = min(maxMessage, packet.getField2());
@@ -154,17 +164,12 @@ int main(int argc, char const *argv[])
   string filename = argv[2];
   if(argv[1][0] == 'r')
   {
-    // if(filename.find('/') != string::npos)
-    // {
-    //   packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 13);
-    //   sendPacket(sock, packet);
-    //   return -1;
-    // }
     if(filename.size() > (bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+DATA_LENGTH_LENGTH)))
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 4);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 4: " << RSTERRORS.at(4) << endl;
+      return 4;
     }
     packet.setPacket(
       REQ,
@@ -182,13 +187,15 @@ int main(int argc, char const *argv[])
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 98: " << RSTERRORS.at(98) << endl;
+      return 98;
     }
     if(packetType == 'e')
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 97);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 97: " << RSTERRORS.at(97) << endl;
+      return 97;
     }
     acknowledgeNumber = addSeqAckNumber(acknowledgeNumber, packet.getSize());
     //Check and send response to RAK
@@ -196,19 +203,22 @@ int main(int argc, char const *argv[])
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 7);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 7: " << RSTERRORS.at(7) << endl;
+      return 7;
     }
     if(packet.getAck() != sequenceNumber)
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 99);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 99: " << RSTERRORS.at(99) << endl;
+      return 99;
     }
     if(packet.getData() != filename)
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 8);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 8: " << RSTERRORS.at(8) << endl;
+      return 8;
     }
     int chunkSize, chunkTotal;
     chunkSize = bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+DATA_LENGTH_LENGTH);
@@ -223,7 +233,8 @@ int main(int argc, char const *argv[])
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 9);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 9: " << RSTERRORS.at(9) << endl;
+      return 9;
     }
     packet.setPacket(ACK, sequenceNumber, acknowledgeNumber);
     sendPacket(sock, packet);
@@ -246,13 +257,15 @@ int main(int argc, char const *argv[])
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 5);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 5: " << RSTERRORS.at(5) << endl;
+      return 5;
     }
     streampos fileSize = readFile.tellg();
     if(fileSize > maxMessageVal) {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 6);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 6: " << RSTERRORS.at(6) << endl;
+      return 6;
     }
     readFile.seekg(0, ios::beg);
     packet.setPacket(
@@ -271,13 +284,15 @@ int main(int argc, char const *argv[])
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 98: " << RSTERRORS.at(98) << endl;
+      return 98;
     }
     if(packetType == 'e')
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 97);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 97: " << RSTERRORS.at(97) << endl;
+      return 97;
     }
     acknowledgeNumber = addSeqAckNumber(acknowledgeNumber, packet.getSize());
     //Check RAK
@@ -285,19 +300,22 @@ int main(int argc, char const *argv[])
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 7);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 7: " << RSTERRORS.at(7) << endl;
+      return 7;
     }
     if(packet.getAck() != sequenceNumber)
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 99);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 99: " << RSTERRORS.at(99) << endl;
+      return 99;
     }
     if(packet.getData() != filename)
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 8);
       sendPacket(sock, packet);
-      return -1;
+      cout << "Error 8: " << RSTERRORS.at(8) << endl;
+      return 8;
     }
     int chunkSize = bufferVal - (PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+CHUNK_ID_LENGTH+DATA_LENGTH_LENGTH);
     int chunkTotal = fileSize / chunkSize;
@@ -334,26 +352,30 @@ int main(int argc, char const *argv[])
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 98: " << RSTERRORS.at(98) << endl;
+    return 98;
   }
   if(packetType == 'e')
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 97);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 97: " << RSTERRORS.at(97) << endl;
+    return 97;
   }
   acknowledgeNumber = packet.getSeq() + packet.getSize();
   if(packet.getType() != DON)
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 10);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 10: " << RSTERRORS.at(10) << endl;
+    return 10;
   }
   if(packet.getAck() != sequenceNumber)
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 99);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 99: " << RSTERRORS.at(99) << endl;
+    return 99;
   }
   //If everything is good, send FIN
   packet.setPacket(FIN, sequenceNumber, acknowledgeNumber);
@@ -365,26 +387,30 @@ int main(int argc, char const *argv[])
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 98: " << RSTERRORS.at(98) << endl;
+    return 98;
   }
   if(packetType == 'e')
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 97);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 97: " << RSTERRORS.at(97) << endl;
+    return 97;
   }
   acknowledgeNumber = addSeqAckNumber(acknowledgeNumber, packet.getSize());
   if(packet.getType() != FAK)
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 11);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 11: " << RSTERRORS.at(11) << endl;
+    return 11;
   }
   if(packet.getAck() != sequenceNumber)
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 99);
     sendPacket(sock, packet);
-    return -1;
+    cout << "Error 99: " << RSTERRORS.at(99) << endl;
+    return 99;
   }
   //Send ACK
   packet.setPacket(ACK, sequenceNumber, acknowledgeNumber);

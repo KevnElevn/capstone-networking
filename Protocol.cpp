@@ -18,7 +18,6 @@ void sendPacket(int socket, Packet& packet)
 {
   std::string sendStr = packet.toString();
   send(socket, sendStr.data(), packet.getSize(), 0);
-  std::cout << "Sent: " << sendStr << std::endl;
   packet.printPacket();
   std::cout << "----------------------------------\n";
 }
