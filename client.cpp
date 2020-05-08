@@ -354,7 +354,7 @@ int main(int argc, char const *argv[])
   }
   else if(argv[1][0] == 'u')
   {
-    filename += ":" + to_string(port);
+    filename += ":" + to_string(PORT);
     if(filename.size()+PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH > bufferVal)
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 4);
@@ -389,7 +389,7 @@ int main(int argc, char const *argv[])
   acknowledgeNumber = packet.getSeq() + packet.getSize();
   if(packet.getType() != DON)
   {
-    if(packet.getType() == RST && packetType.getField1() == 9)
+    if(packet.getType() == RST && packet.getField1() == 9)
       error = 9;
     else error = 10;
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, error);
