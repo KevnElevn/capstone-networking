@@ -108,7 +108,7 @@ int main(int argc, char const *argv[])
   while(true)
   {
     cout << "Awaiting connection..." << endl;
-    if((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+    if((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))>=0)
     {
       //Connected and listening
       cout << "Accepted socket number: " << new_socket << endl;
