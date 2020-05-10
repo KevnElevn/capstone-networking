@@ -232,7 +232,7 @@ int main(int argc, char const *argv[])
     cout << "****Number of chunks: " << chunkTotal << "****\n";
     cout << "****Chunk size: " << chunkSize << "****\n";
     ofstream writeFile;
-    writeFile.open("./files/"+filename);
+    writeFile.open(filename);
     if(!writeFile.is_open())
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 9);
@@ -256,7 +256,7 @@ int main(int argc, char const *argv[])
   }
   else if(argv[1][0] == 'w')
   {
-    ifstream readFile("./files/"+filename, ios::in | ios::ate | ios::binary);
+    ifstream readFile(filename, ios::in | ios::ate | ios::binary);
     if(!readFile.is_open())
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 5);

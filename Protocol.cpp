@@ -266,8 +266,7 @@ int handleReqPacket(int socket, Packet& packet, Session& session)
   {
     //Quick and dirty
     filename += '\n';
-    std::ofstream updatesFile;
-    updatesFile.open("updates.txt");
+    std::ofstream updatesFile("updates.txt", std::fstream::app);
     if(updatesFile.is_open())
       updatesFile << filename;
     else
