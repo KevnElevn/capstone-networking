@@ -18,13 +18,17 @@ int main(int argc, char const *argv[])
   if(argc < 4)
   {
     error = 101;
-    cerr << "Error " << error << ": Please enter 'r' for read or 'w' for write, followed by a file name to read from or write to, and port to connect to." << endl;
+    cerr << "Error " << error << ": Please enter valid arguments:\n"
+         << "r <filename> <port> [max buffer] [max message]\n"
+         << "w <filename> <port> [max buffer] [max message]\n"
+         << "u \"+:filename:block:filesize\" <port> [max buffer] [max message]"
+         << endl;
     return error;
   }
-  if(argv[1][0] != 'r' && argv[1][0] != 'w')
+  if(argv[1][0] != 'r' && argv[1][0] != 'w' && argv[1][0] != 'u')
   {
     error = 102;
-    cerr << "Error " << error << ": Please enter 'r' for read or 'w' for write" << endl;
+    cerr << "Error " << error << ": Please enter 'r' for read, 'w' for write, or 'u' for update" << endl;
     return error;
   }
   if(argc > 4)
@@ -228,7 +232,7 @@ int main(int argc, char const *argv[])
     cout << "****Number of chunks: " << chunkTotal << "****\n";
     cout << "****Chunk size: " << chunkSize << "****\n";
     ofstream writeFile;
-    writeFile.open("./files/"+filename);
+    writeFile.open(filename);
     if(!writeFile.is_open())
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 9);
@@ -250,9 +254,9 @@ int main(int argc, char const *argv[])
     }
     writeFile.close();
   }
-  else
+  else if(argv[1][0] == 'w')
   {
-    ifstream readFile("./files/"+filename, ios::in | ios::ate | ios::binary);
+    ifstream readFile(filename, ios::in | ios::ate | ios::binary);
     if(!readFile.is_open())
     {
       packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 5);
@@ -348,6 +352,27 @@ int main(int argc, char const *argv[])
     sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
     packetType = recvPacket(sock, buffer.data(), packet);
   }
+  else if(argv[1][0] == 'u')
+  {
+    if(filename.size()+PACKET_TYPE_LENGTH+(2*SEQ_ACK_LENGTH)+FILE_SIZE_LENGTH+DATA_LENGTH_LENGTH > bufferVal)
+    {
+      packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 4);
+      sendPacket(sock, packet);
+      cout << "Error 4: " << RSTERRORS.at(4) << endl;
+      return 4;
+    }
+    packet.setPacket(
+      REQ,
+      sequenceNumber,
+      acknowledgeNumber,
+      -1,
+      filename.size(),
+      filename
+    );
+    sendPacket(sock, packet);
+    sequenceNumber = addSeqAckNumber(sequenceNumber, packet.getSize());
+    packetType = recvPacket(sock, buffer.data(), packet);
+  }
   if(packetType == 't')
   {
     packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 98);
@@ -365,10 +390,13 @@ int main(int argc, char const *argv[])
   acknowledgeNumber = packet.getSeq() + packet.getSize();
   if(packet.getType() != DON)
   {
-    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, 10);
+    if(packet.getType() == RST && packet.getField1() == 9)
+      error = 9;
+    else error = 10;
+    packet.setPacket(RST, sequenceNumber, acknowledgeNumber, error);
     sendPacket(sock, packet);
-    cout << "Error 10: " << RSTERRORS.at(10) << endl;
-    return 10;
+    cout << "Error " << error << ": " << RSTERRORS.at(error) << endl;
+    return error;
   }
   if(packet.getAck() != sequenceNumber)
   {
