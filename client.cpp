@@ -98,7 +98,7 @@ int main(int argc, char const *argv[])
     return error;
   }
   //Connected
-  cout << "Connected\n";
+  //cout << "Connected\n";
   srand(time(NULL));
   vector<char> buffer;
   buffer.reserve(32);
@@ -229,8 +229,8 @@ int main(int argc, char const *argv[])
     chunkTotal = packet.getField1() / chunkSize;
     if(packet.getField1() % chunkSize)
       chunkTotal++;
-    cout << "****Number of chunks: " << chunkTotal << "****\n";
-    cout << "****Chunk size: " << chunkSize << "****\n";
+    //cout << "****Number of chunks: " << chunkTotal << "****\n";
+    // cout << "****Chunk size: " << chunkSize << "****\n";
     ofstream writeFile;
     writeFile.open(filename);
     if(!writeFile.is_open())
@@ -325,8 +325,8 @@ int main(int argc, char const *argv[])
     int chunkTotal = fileSize / chunkSize;
     if(fileSize % chunkSize)
       chunkTotal++;
-    cout << "****Number of chunks: " << chunkTotal << "****\n";
-    cout << "****Chunk size: " << chunkSize << "****\n";
+    // cout << "****Number of chunks: " << chunkTotal << "****\n";
+    // cout << "****Chunk size: " << chunkSize << "****\n";
     int chunkCounter = 0;
     char * fileBuffer = new char[chunkSize];
     while(readFile.tellg() < fileSize)

@@ -18,8 +18,8 @@ void sendPacket(int socket, Packet& packet)
 {
   std::string sendStr = packet.toString();
   send(socket, sendStr.data(), packet.getSize(), 0);
-  packet.printPacket();
-  std::cout << "----------------------------------\n";
+  //packet.printPacket();
+  //std::cout << "----------------------------------\n";
 }
 
 char recvPacket(int socket, char* buffer, Packet& packet)
@@ -40,8 +40,8 @@ char recvPacket(int socket, char* buffer, Packet& packet)
       }
       packet.setData(buffer);
     }
-    packet.printPacket();
-    std::cout << "----------------------------------\n";
+    //packet.printPacket();
+    //std::cout << "----------------------------------\n";
     return packet.getType();
   }
   if(valread == 0)
@@ -171,8 +171,8 @@ int handleReqPacket(int socket, Packet& packet, Session& session)
     int chunkTotal = fileSize / chunkSize;
     if(fileSize % chunkSize)
       chunkTotal++;
-    std::cout << "****Number of chunks: " << chunkTotal << "****\n";
-    std::cout << "****Chunk size: " << chunkSize << "****\n";
+    // std::cout << "****Number of chunks: " << chunkTotal << "****\n";
+    // std::cout << "****Chunk size: " << chunkSize << "****\n";
     int chunkCounter = 0;
     std::vector<char> fileBuffer(chunkSize);
     while(readFile.tellg() < fileSize)
@@ -203,8 +203,8 @@ int handleReqPacket(int socket, Packet& packet, Session& session)
     chunkTotal = packet.getField1() / chunkSize;
     if(packet.getField1() % chunkSize)
       chunkTotal++;
-    std::cout << "****Number of chunks: " << chunkTotal << "****\n";
-    std::cout << "****Chunk size: " << chunkSize << "****\n";
+    // std::cout << "****Number of chunks: " << chunkTotal << "****\n";
+    // std::cout << "****Chunk size: " << chunkSize << "****\n";
     std::ofstream writeFile;
     writeFile.open("./files/"+filename);
     if(!writeFile.is_open())

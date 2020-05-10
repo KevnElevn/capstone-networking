@@ -124,7 +124,7 @@ int main(int argc, char const *argv[])
       //Read SYN packet
       Packet packet;
       char packetType;
-      cout << "Session generated: " << session.sequenceNumber << ", " << session.acknowledgeNumber << endl;
+      //cout << "Session generated: " << session.sequenceNumber << ", " << session.acknowledgeNumber << endl;
       packetType = recvPacket(new_socket, session.buffer.data(), packet);
       if((error = handleSynPacket(new_socket, packet, session, packetType)) != 0)
       {
