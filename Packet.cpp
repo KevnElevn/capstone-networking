@@ -244,11 +244,13 @@ void Packet::printPacket()
       std::cout << "Request operation: ";
       if(field1 == 0)
         std::cout << "read" << std::endl;
-      else
+      else if(field1 > 0)
       {
         std::cout << "write" << std::endl;
         std::cout << "File size: " << field1 << std::endl;
       }
+      else
+        std::cout << "update" << std::endl;
       std::cout << "Message Length: " << field2 << std::endl;
       std::cout << "Filename: " << data << std::endl;
       break;
@@ -338,8 +340,13 @@ std::string Packet::toString() const
 
     case REQ:
     {
-      std::string reqOp = std::to_string(field1);
+      int f1 = field1;
+      if(field1 < 0)
+        f1 = f1 * -1;
+      std::string reqOp = std::to_string(f1);
       reqOp.insert(reqOp.begin(), FILE_SIZE_LENGTH-reqOp.size(), '0');
+      if(field1 < 0)
+        reqOp[0] = '-';
       std::string messageLengthStr = std::to_string(field2);
       messageLengthStr.insert(messageLengthStr.begin(), DATA_LENGTH_LENGTH-messageLengthStr.size(), '0');
 

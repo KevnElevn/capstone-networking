@@ -34,7 +34,7 @@ int main(int argc, char const *argv[])
     if(atoi(argv[2]) > 26)
     {
       //Buffer size > ~66MB
-      error = 102
+      error = 102;
       cerr << "Error " << error << ":Buffer too big" << endl;
       return error;
     }
@@ -43,7 +43,7 @@ int main(int argc, char const *argv[])
       if(atoi(argv[3]) > 31)
       {
         //Max message size > 2GB
-         error = 103
+         error = 103;
         cerr << "Error " << error << ": Max message size too big" << endl;
         return error;
       }
@@ -108,7 +108,7 @@ int main(int argc, char const *argv[])
   while(true)
   {
     cout << "Awaiting connection..." << endl;
-    if((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+    if((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))>=0)
     {
       //Connected and listening
       cout << "Accepted socket number: " << new_socket << endl;
