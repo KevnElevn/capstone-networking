@@ -25,6 +25,8 @@ Standalone instructions:
 
   If successful, the program will return a 0, and the requested file will be in the node directory.
 
-7. To write a file to another host,  `run ./client r <filename> <port> [max_buffer] [max_message]`
+7. To write a file to another host,  run `./client r <filename> <port> [max_buffer] [max_message]`
 
   If successful, the program will return a 0, and the given file will be written into the other host's files directory
+
+8. To write a string to another host's 'updates.txt' file, run `./client u "theString" <port>`
